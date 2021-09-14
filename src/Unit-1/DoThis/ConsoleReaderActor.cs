@@ -15,11 +15,11 @@ namespace WinTail
         public const string ExitCommand = "exit";
         public const string StartCommand = "start";
         
-        private IActorRef _consoleWriterActor;
+        private IActorRef _nextActor;
 
-        public ConsoleReaderActor(IActorRef consoleWriterActor)
+        public ConsoleReaderActor(IActorRef nextActor)
         {
-            _consoleWriterActor = consoleWriterActor;
+            _nextActor = nextActor;
         }
 
         protected override void OnReceive(object message)
@@ -30,7 +30,7 @@ namespace WinTail
             }
             else if (message is Messages.InputError inputErrorMessage)
             {
-                _consoleWriterActor.Tell(inputErrorMessage);
+                _nextActor.Tell(inputErrorMessage);
             }
 
             GetAndValidateInput();
@@ -39,6 +39,7 @@ namespace WinTail
         private void GetAndValidateInput()
         {
             var input = Console.ReadLine();
+
             if (string.IsNullOrEmpty(input))
             {
                 // signal that the user needs to supply an input
@@ -51,22 +52,8 @@ namespace WinTail
             }
             else
             {
-                var valid = IsValid(input);
-                if (valid)
-                {
-                    _consoleWriterActor.Tell(new Messages.InputSuccess("Thank you, input was valid"));
-                    Self.Tell(new Messages.ContinueProcessing());
-                }
-                else
-                {
-                    Self.Tell(new Messages.ValidationError("Invalid input: odd number of chars"));
-                }
+                _nextActor.Tell(input);
             }
-        }
-
-        private bool IsValid(string input)
-        {
-            return input.Length % 2 == 0;
         }
 
         private void DoPrintInstructions()
